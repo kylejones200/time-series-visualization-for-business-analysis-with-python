@@ -11,7 +11,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 def plot_time_series(df: pd.DataFrame, value_col: str, date_col: str, title: str, output_path: Path):
- """Plot time series """
+    """Plot time series """
     fig, ax = plt.subplots(figsize=(10, 6))
     
     if date_col in df.columns:
@@ -28,7 +28,7 @@ def plot_time_series(df: pd.DataFrame, value_col: str, date_col: str, title: str
     plt.close()
 
 def plot_multiple_series(df: pd.DataFrame, columns: List[str], title: str, output_path: Path):
- """Plot multiple time series """
+    """Plot multiple time series """
     fig, ax = plt.subplots(figsize=(10, 6))
     
     colors = ["#4A90A4", "#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
@@ -44,7 +44,7 @@ def plot_multiple_series(df: pd.DataFrame, columns: List[str], title: str, outpu
     plt.close()
 
 def plot_seasonal_decomposition(df: pd.DataFrame, value_col: str, period: int, title: str, output_path: Path):
- """Plot seasonal decomposition """
+    """Plot seasonal decomposition """
     fig, axes = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
     
     trend = df[value_col].rolling(window=period, center=True).mean()
