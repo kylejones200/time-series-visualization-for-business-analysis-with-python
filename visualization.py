@@ -1,195 +1,249 @@
+"""Common visualization utilities for time series examples.
+
+These helpers implement a minimalist plotting style and are aligned with the
+API used in ``MINIMALIST_PLOTS_README.py``.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Dict, Iterable, Mapping, Optional, Sequence, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import matplotlib.dates as mdates
-from matplotlib.ticker import FuncFormatter
-from PIL import Image
 from statsmodels.tsa.seasonal import seasonal_decompose
 
 
-def set_visualization_style():
-    """
-    Set global matplotlib visualization style parameters.
-    """
-    plt.rcParams.update(
-        {
-            "font.family": "serif",
-            "axes.labelsize": 12,
-            "axes.titlesize": 14,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "axes.spines.left": True,
-            "axes.spines.bottom": True,
-            "axes.grid": False,
-        }
-    )
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 
-def set_plot_style(ax, data: pd.DataFrame, time_column, value_columns):
-    """
-    Set the style for a given plot axis based on the dataframe content.
-
-    Parameters:
-        ax (matplotlib.axes.Axes): The axis object to style.
-        data (pandas.DataFrame): DataFrame containing time and value columns.
-        time_column (str): The name of the time column in the DataFrame.
-        value_columns (list): List of value column names.
-    """
+def _apply_minimalist_style(ax: plt.Axes) -> None:
+    """Apply a simple minimalist style to a Matplotlib axis."""
+    ax.grid(False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_position(("outward", 5))
-    ax.spines["bottom"].set_position(("outward", 5))
-
-    data[time_column] = pd.to_datetime(data[time_column])  # Ensure datetime format
-    time_range = data[time_column].max() - data[time_column].min()
-
-    # Adjust X-Axis ticks dynamically
-    if time_range < pd.Timedelta(days=365):  # If data is shorter than 1 year
-        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    elif time_range < pd.Timedelta(days=365 * 10):  # If data spans less than 10 years
-        ax.xaxis.set_major_locator(mdates.YearLocator(1))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    else:  # For longer datasets, use 50-year intervals
-        ax.xaxis.set_major_locator(mdates.YearLocator(50))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-
-    ax.set_xlim(data[time_column].min(), data[time_column].max())
-
-    # Y-Axis scaling based on percentiles
-    all_values = np.concatenate([data[col].dropna().values for col in value_columns])
-    y_20, y_mean, y_80 = np.percentile(all_values, [20, 50, 80])
-
-    ax.set_yticks([y_20, y_mean, y_80])
-    ax.set_yticklabels(
-        [f"{int(y_20)}", f"{int(y_mean)}", f"{int(y_80)}"]
-    )  # Force integer labels
-
-    # Force plain integer formatting for Y-axis
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{int(x)}"))
-
-    # Force integer formatting for X-axis if numeric
-    if data[time_column].dtype in [np.int64, np.float64]:
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{int(x)}"))
+    ax.tick_params(direction="out")
 
 
-def plot_time_series(
-    data: pd.DataFrame,
-    time_column,
-    value_columns,
-    title: str = "Time Series Plot",
-    filename=None,
-):
-    """
-    Plot time series data from a DataFrame.
+def plot_time_series_with_groups(
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    group_col: Optional[str] = None,
+    group_labels: Optional[Mapping[str, str]] = None,
+    title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    colors: Optional[Sequence[str]] = None,
+    linestyles: Optional[Sequence[str]] = None,
+    save_path: Optional[str] = None,
+    ax: Optional[plt.Axes] = None,
+) -> Tuple[plt.Figure, plt.Axes]:
+    """Plot a univariate time series, optionally grouped by a categorical column."""
+    fig: plt.Figure
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 5))
+    else:
+        fig = ax.figure
 
-    Parameters:
-        data (pandas.DataFrame): DataFrame containing time and value data.
-        time_column (str): The name of the time column.
-        value_columns (list): List of column names to plot.
-        title (str, optional): Title of the plot.
-        filename (str, optional): Filename to save the plot.
-    """
-    set_visualization_style()
-    fig, ax = plt.subplots(figsize=(10, 5))
-    colors = plt.cm.Greys(np.linspace(0.2, 0.8, len(value_columns)))
+    _apply_minimalist_style(ax)
 
-    data[time_column] = pd.to_datetime(data[time_column])  # Ensure datetime format
+    x = df[x_col]
+    y = df[y_col]
 
-    for i, col in enumerate(value_columns):
-        ax.plot(data[time_column], data[col], linewidth=2, color=colors[i])
-        last_x = data[time_column].iloc[-1] + pd.Timedelta(days=10)
-        last_y = data[col].iloc[-1]
-        ax.text(
-            last_x,
-            last_y,
-            col,
-            fontsize=12,
-            color=colors[i],
-            verticalalignment="center",
-        )
-
-    set_plot_style(ax, data, time_column, value_columns)
+    if group_col is None:
+        ax.plot(x, y, color=colors[0] if colors else "#1f77b4", linestyle="-")
+    else:
+        groups = df[group_col].astype(str)
+        unique_groups = groups.unique()
+        for idx, g in enumerate(unique_groups):
+            mask = groups == g
+            label = group_labels[g] if group_labels and g in group_labels else str(g)
+            color = colors[idx % len(colors)] if colors else None
+            linestyle = linestyles[idx % len(linestyles)] if linestyles else "-"
+            ax.plot(x[mask], y[mask], label=label, color=color, linestyle=linestyle)
+        ax.legend(frameon=False)
 
     if title:
         ax.set_title(title)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
 
-    if filename:
-        plt.savefig(filename, dpi=300, bbox_inches="tight")
-    plt.show()
+    fig.tight_layout()
 
+    if save_path:
+        logger.info("Saving time series plot to '%s'", save_path)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
 
-def plot_decomposition(
-    data: pd.Series, model: str = "additive", title: str = "Time Series Decomposition"
-):
-    """
-    Perform and plot seasonal decomposition of a time series.
-
-    Parameters:
-        data (pandas.Series): The time series data to decompose.
-        model (str): Type of seasonal component ('additive' or 'multiplicative').
-        title (str): Title for the decomposition plots.
-    """
-    set_visualization_style()
-    period = max(2, len(data) // 10)
-    decomposition = seasonal_decompose(data, model=model, period=period)
-    fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
-
-    axes[0].plot(data, label="Original", color="black")
-    axes[0].set_title("Original Series")
-
-    axes[1].plot(decomposition.trend, label="Trend", color="black")
-    axes[1].set_title("Trend")
-
-    axes[2].plot(decomposition.seasonal, label="Seasonal", color="black")
-    axes[2].set_title("Seasonal")
-
-    axes[3].plot(decomposition.resid, label="Residual", color="black")
-    axes[3].set_title("Residual")
-
-    plt.tight_layout()
-    plt.savefig(f"{title.replace(' ', '_')}.png")
-    plt.show()
+    return fig, ax
 
 
-def plot_clusters(model, title: str = "Time Series Cluster"):
-    """
-    Plot cluster centroids for a given clustering model.
+def plot_trend_line(
+    x: Iterable[float],
+    trend_values: Iterable[float],
+    trend_label: str = "Trend",
+    title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    save_path: Optional[str] = None,
+    ax: Optional[plt.Axes] = None,
+) -> Tuple[plt.Figure, plt.Axes]:
+    """Plot a trend line against a time or index axis."""
+    x_arr = np.asarray(list(x))
+    trend_arr = np.asarray(list(trend_values))
 
-    Parameters:
-        model: A clustering model with an attribute `cluster_centers_`.
-        title (str): Title of the plot.
-    """
-    set_visualization_style()
-    plt.figure(figsize=(10, 4))
-    for centroid in model.cluster_centers_:
-        plt.plot(centroid.ravel(), linewidth=2)
-    plt.title(title)
-    plt.show()
+    fig: plt.Figure
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 5))
+    else:
+        fig = ax.figure
+
+    _apply_minimalist_style(ax)
+    ax.plot(x_arr, trend_arr, label=trend_label, color="#1f77b4")
+    ax.legend(frameon=False)
+
+    if title:
+        ax.set_title(title)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+
+    fig.tight_layout()
+
+    if save_path:
+        logger.info("Saving trend plot to '%s'", save_path)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    return fig, ax
 
 
-def plot_sample_time_series(X, title: str = "Time Series Data"):
-    """
-    Plot a few sample time series from the dataset.
+def plot_detrended_data(
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    trend_values: Sequence[float],
+    group_col: Optional[str] = None,
+    title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    save_path: Optional[str] = None,
+) -> Tuple[plt.Figure, plt.Axes]:
+    """Plot detrended series (original minus trend)."""
+    detrended = df[y_col].values - np.asarray(trend_values)
+    tmp = df.copy()
+    tmp["detrended"] = detrended
 
-    Parameters:
-        X (iterable): An iterable of time series arrays.
-        title (str): Title of the plot.
-    """
-    set_visualization_style()
-    plt.figure(figsize=(10, 4))
-    for i in range(min(5, len(X))):  # Plot first 5 series
-        plt.plot(X[i].ravel(), linewidth=2, label=f"Series {i + 1}")
-    plt.title(title)
-    plt.legend()
-    plt.show()
+    fig, ax = plot_time_series_with_groups(
+        tmp,
+        x_col=x_col,
+        y_col="detrended",
+        group_col=group_col,
+        title=title,
+        xlabel=xlabel,
+        ylabel=ylabel or f"{y_col} (detrended)",
+        save_path=None,
+    )
+
+    if save_path:
+        logger.info("Saving detrended plot to '%s'", save_path)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    return fig, ax
 
 
-if __name__ == "__main__":
-    # Example usage for time series plotting and decomposition
-    time = pd.date_range(start="1950-01-01", periods=100, freq="Y")
-    data = pd.DataFrame({"Date": time, "Value": np.cumsum(np.random.randn(100))})
+def plot_forecast(
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    trend_model,
+    n_years_ahead: int = 10,
+    step_size: int = 1,
+    title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    save_path: Optional[str] = None,
+) -> Tuple[plt.Figure, plt.Axes, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Plot a simple forecast with normal-based confidence intervals."""
+    x = df[x_col].values.reshape(-1, 1)
+    y = df[y_col].values
 
-    plot_time_series(data, "Date", ["Value"], title="Sample Time Series")
-    plot_decomposition(data["Value"], model="additive", title="Sample Decomposition")
+    # In-sample fit and residuals
+    y_hat = trend_model.predict(x)
+    residuals = y - y_hat
+    sigma = residuals.std(ddof=1)
+
+    last_x = x.max()
+    future_x = np.arange(last_x + step_size, last_x + step_size * (n_years_ahead + 1), step_size)
+    future_x_2d = future_x.reshape(-1, 1)
+    forecast = trend_model.predict(future_x_2d)
+
+    z = 1.96  # approx 95% CI
+    lower = forecast - z * sigma
+    upper = forecast + z * sigma
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    _apply_minimalist_style(ax)
+
+    ax.plot(df[x_col], df[y_col], label="Observed", color="#1f77b4")
+    ax.plot(future_x, forecast, label="Forecast", color="#ff7f0e")
+    ax.fill_between(future_x, lower, upper, color="#ff7f0e", alpha=0.2, label="95% CI")
+    ax.legend(frameon=False)
+
+    if title:
+        ax.set_title(title)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    else:
+        ax.set_xlabel(x_col)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+    else:
+        ax.set_ylabel(y_col)
+
+    fig.tight_layout()
+
+    if save_path:
+        logger.info("Saving forecast plot to '%s'", save_path)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    return fig, ax, future_x, forecast, lower, upper
+
+
+def plot_statistical_decomposition(
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    period: int,
+    title: Optional[str] = None,
+    save_path: Optional[str] = None,
+) -> Tuple[plt.Figure, np.ndarray, seasonal_decompose]:
+    """Perform and plot a classical seasonal decomposition."""
+    series = df.set_index(x_col)[y_col].asfreq("D")
+    decomposition = seasonal_decompose(series, model="additive", period=period)
+
+    fig = decomposition.plot()
+    axes = np.asarray(fig.axes)
+    for ax in axes:
+        _apply_minimalist_style(ax)
+
+    if title:
+        fig.suptitle(title)
+        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    else:
+        fig.tight_layout()
+
+    if save_path:
+        logger.info("Saving decomposition plot to '%s'", save_path)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    return fig, axes, decomposition
+
+
