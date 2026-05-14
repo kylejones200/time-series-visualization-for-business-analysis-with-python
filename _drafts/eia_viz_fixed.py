@@ -1,3 +1,4 @@
+import signalplot
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,20 +6,9 @@ from pathlib import Path
 from dataclasses import dataclass
 
 np.random.seed(42)
-plt.rcParams.update(
-    {
-        "font.family": "serif",
-        "axes.spines.top": False,
-        "axes.spines.right": False,
-        "axes.linewidth": 0.8,
-    }
-)
+signalplot.apply(font_family='serif')
 
 
-def save_fig(path: str):
-    plt.tight_layout()
-    plt.savefig(path, bbox_inches="tight")
-    plt.close()
 
 
 @dataclass
@@ -51,7 +41,7 @@ def main(plot: bool = False):
         ax[2].plot(yoy.index, yoy.values, color="tab:orange", label="YoY %")
         ax[2].axhline(0, color="k", lw=0.5)
         ax[2].legend()
-        save_fig("eia_viz.png")
+        signalplot.save("eia_viz.png")
 
 
 if __name__ == "__main__":
