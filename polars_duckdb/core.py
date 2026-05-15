@@ -1,15 +1,16 @@
 """Time series visualization using Polars and DuckDB."""
 
-import duckdb
-import polars as pl
-import matplotlib.pyplot as plt
 from pathlib import Path
+
+import duckdb
+import matplotlib.pyplot as plt
+import polars as pl
 
 
 def plot_time_series(
     df: pl.DataFrame, value_col: str, date_col: str, title: str, output_path: Path
 ):
-    dates  = df[date_col].to_list()
+    dates = df[date_col].to_list()
     values = df[value_col].to_list()
 
     if plot:
@@ -32,8 +33,13 @@ def plot_multiple_series(
     if plot:
         fig, ax = plt.subplots(figsize=(10, 6))
         for i, col in enumerate(columns):
-            ax.plot(dates, df[col].to_list(), label=col,
-                    color=colors[i % len(colors)], linewidth=1.2)
+            ax.plot(
+                dates,
+                df[col].to_list(),
+                label=col,
+                color=colors[i % len(colors)],
+                linewidth=1.2,
+            )
         ax.set_xlabel("Time")
         ax.set_ylabel("Value")
         ax.set_title(title)
@@ -66,8 +72,12 @@ def decompose_trend(
 
 
 def plot_seasonal_decomposition(
-    df: pl.DataFrame, value_col: str, date_col: str,
-    period: int, title: str, output_path: Path,
+    df: pl.DataFrame,
+    value_col: str,
+    date_col: str,
+    period: int,
+    title: str,
+    output_path: Path,
 ):
     decomposed = decompose_trend(df, date_col, value_col, period)
     dates = decomposed[date_col].to_list()
@@ -75,13 +85,19 @@ def plot_seasonal_decomposition(
     if plot:
         fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
 
-        axes[0].plot(dates, decomposed[value_col].to_list(), color="#4A90A4", linewidth=1.2)
+        axes[0].plot(
+            dates, decomposed[value_col].to_list(), color="#4A90A4", linewidth=1.2
+        )
         axes[0].set_ylabel("Original")
 
-        axes[1].plot(dates, decomposed["trend"].to_list(),    color="#D4A574", linewidth=1.2)
+        axes[1].plot(
+            dates, decomposed["trend"].to_list(), color="#D4A574", linewidth=1.2
+        )
         axes[1].set_ylabel("Trend")
 
-        axes[2].plot(dates, decomposed["seasonal"].to_list(), color="#8B6F9E", linewidth=1.2)
+        axes[2].plot(
+            dates, decomposed["seasonal"].to_list(), color="#8B6F9E", linewidth=1.2
+        )
         axes[2].set_xlabel("Time")
         axes[2].set_ylabel("Detrended")
 

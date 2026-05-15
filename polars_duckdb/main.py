@@ -2,16 +2,18 @@
 """Time series visualization — Polars + DuckDB rewrite."""
 
 import argparse
-import yaml
 import logging
-import numpy as np
-import polars as pl
 from datetime import date, timedelta
 from pathlib import Path
 
-from core import plot_time_series, plot_seasonal_decomposition
+import numpy as np
+import polars as pl
+import yaml
+from core import plot_seasonal_decomposition, plot_time_series
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def load_config(config_path: Path = None) -> dict:
@@ -29,7 +31,11 @@ def main():
     args = parser.parse_args()
 
     config = load_config(args.config)
-    output_dir = Path(args.output_dir) if args.output_dir else Path(config["output"]["figures_dir"])
+    output_dir = (
+        Path(args.output_dir)
+        if args.output_dir
+        else Path(config["output"]["figures_dir"])
+    )
     output_dir.mkdir(exist_ok=True)
 
     if args.data_path and args.data_path.exists():
@@ -39,21 +45,22 @@ def main():
         n = config["data"]["n_periods"]
         start = date(2023, 1, 1)
         dates = [start + timedelta(days=i) for i in range(n)]
-        values = (
-            np.sin(np.arange(n) / 30) * 100 + 500 + rng.normal(0, 20, n)
-        ).tolist()
+        values = (np.sin(np.arange(n) / 30) * 100 + 500 + rng.normal(0, 20, n)).tolist()
         df = pl.DataFrame({"date": dates, "value": values})
     else:
         raise ValueError("No data source specified")
 
     if config["visualization"]["time_series"]:
-        plot_time_series(df, "value", "date", "Business Time Series",
-                         output_dir / "time_series.png")
+        plot_time_series(
+            df, "value", "date", "Business Time Series", output_dir / "time_series.png"
+        )
         logging.info("time_series.png saved")
 
     if config["visualization"]["seasonal_decomposition"]:
         plot_seasonal_decomposition(
-            df, "value", "date",
+            df,
+            "value",
+            "date",
             period=config["visualization"]["seasonal_period"],
             title="Seasonal Decomposition",
             output_path=output_dir / "seasonal_decomposition.png",

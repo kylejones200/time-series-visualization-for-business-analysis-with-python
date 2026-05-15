@@ -1,249 +1,172 @@
-"""Common visualization utilities for time series examples.
+"""Generated from Jupyter notebook: Line Plot with Moving Average
 
-These helpers implement a minimalist plotting style and are aligned with the
-API used in ``MINIMALIST_PLOTS_README.py``.
-"""
-
-from __future__ import annotations
-
-import logging
-from typing import Iterable, Mapping, Sequence
-
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from statsmodels.tsa.seasonal import seasonal_decompose
+Magics and shell lines are commented out. Run with a normal Python interpreter."""
 
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+
+def main():
+    # --- code cell ---
+
+    """
+    This dataset provides a simple time series to demonstrate different visualization methods.
+    Enhanced with timesmith and plotsmith for streamlined time series operations and visualizations.
+    """
+
+    import numpy as np
+    import pandas as pd
+    import plotsmith as ps
+    import timesmith as ts
+
+    np.random.seed(42)
+    time = pd.date_range(start="2023-01-01", periods=100, freq="D")
+    data = {
+        "Date": time,
+        "Value": 100
+        + 2 * np.arange(100)
+        + np.sin(np.linspace(0, 10, 100)) * 10
+        + np.random.normal(0, 5, 100),
+    }
+    df = pd.DataFrame(data)
+    df.set_index("Date", inplace=True)  # Set Date as index for timesmith compatibility
 
 
-def _apply_minimalist_style(ax: plt.Axes) -> None:
-    """Apply a simple minimalist style to a Matplotlib axis."""
-    ax.grid(False)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.tick_params(direction="out")
+    # --- code cell ---
 
+    # Use timesmith's RollingFeaturizer to calculate moving average
+    # RollingFeaturizer adds enhanced rolling statistics to pandas
+    rolling_feat = ts.RollingFeaturizer(windows=[7], functions=["mean"])
+    rolling_features = rolling_feat.fit_transform(df[["Value"]])
+    df["Moving_Avg"] = rolling_features["rolling_mean_7"]  # Extract the 7-day mean
 
-def plot_time_series_with_groups(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    group_col: str | None = None,
-    group_labels: Mapping[str, str] | None = None,
-    title: str | None = None,
-    xlabel: str | None = None,
-    ylabel: str | None = None,
-    colors: Sequence[str] | None = None,
-    linestyles: Sequence[str] | None = None,
-    save_path: str | None = None,
-    ax: plt.Axes | None = None,
-) -> tuple[plt.Figure, plt.Axes]:
-    """Plot a univariate time series, optionally grouped by a categorical column."""
-    fig: plt.Figure
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(10, 5))
-    else:
-        fig = ax.figure
-
-    _apply_minimalist_style(ax)
-
-    x = df[x_col]
-    y = df[y_col]
-
-    if group_col is None:
-        ax.plot(x, y, color=colors[0] if colors else "#1f77b4", linestyle="-")
-    else:
-        groups = df[group_col].astype(str)
-        unique_groups = groups.unique()
-        for idx, g in enumerate(unique_groups):
-            mask = groups == g
-            label = group_labels[g] if group_labels and g in group_labels else str(g)
-            color = colors[idx % len(colors)] if colors else None
-            linestyle = linestyles[idx % len(linestyles)] if linestyles else "-"
-            ax.plot(x[mask], y[mask], label=label, color=color, linestyle=linestyle)
-        ax.legend(frameon=False)
-
-    if title:
-        ax.set_title(title)
-    if xlabel:
-        ax.set_xlabel(xlabel)
-    if ylabel:
-        ax.set_ylabel(ylabel)
-
-    fig.tight_layout()
-
-    if save_path:
-        logger.info("Saving time series plot to '%s'", save_path)
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
-
-    return fig, ax
-
-
-def plot_trend_line(
-    x: Iterable[float],
-    trend_values: Iterable[float],
-    trend_label: str = "Trend",
-    title: str | None = None,
-    xlabel: str | None = None,
-    ylabel: str | None = None,
-    save_path: str | None = None,
-    ax: plt.Axes | None = None,
-) -> tuple[plt.Figure, plt.Axes]:
-    """Plot a trend line against a time or index axis."""
-    x_arr = np.asarray(list(x))
-    trend_arr = np.asarray(list(trend_values))
-
-    fig: plt.Figure
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(10, 5))
-    else:
-        fig = ax.figure
-
-    _apply_minimalist_style(ax)
-    ax.plot(x_arr, trend_arr, label=trend_label, color="#1f77b4")
-    ax.legend(frameon=False)
-
-    if title:
-        ax.set_title(title)
-    if xlabel:
-        ax.set_xlabel(xlabel)
-    if ylabel:
-        ax.set_ylabel(ylabel)
-
-    fig.tight_layout()
-
-    if save_path:
-        logger.info("Saving trend plot to '%s'", save_path)
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
-
-    return fig, ax
-
-
-def plot_detrended_data(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    trend_values: Sequence[float],
-    group_col: str | None = None,
-    title: str | None = None,
-    xlabel: str | None = None,
-    ylabel: str | None = None,
-    save_path: str | None = None,
-) -> tuple[plt.Figure, plt.Axes]:
-    """Plot detrended series (original minus trend)."""
-    detrended = df[y_col].values - np.asarray(trend_values)
-    tmp = df.copy()
-    tmp["detrended"] = detrended
-
-    fig, ax = plot_time_series_with_groups(
-        tmp,
-        x_col=x_col,
-        y_col="detrended",
-        group_col=group_col,
-        title=title,
-        xlabel=xlabel,
-        ylabel=ylabel or f"{y_col} (detrended)",
-        save_path=None,
+    # Use plotsmith for enhanced time series visualization
+    # Ensure the DataFrame has the datetime index preserved
+    plot_df = pd.DataFrame(
+        {"Original Data": df["Value"], "7-Day Moving Average": df["Moving_Avg"]},
+        index=df.index,
     )
 
-    if save_path:
-        logger.info("Saving detrended plot to '%s'", save_path)
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
-
-    return fig, ax
-
-
-def plot_forecast(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    trend_model,
-    n_years_ahead: int = 10,
-    step_size: int = 1,
-    title: str | None = None,
-    xlabel: str | None = None,
-    ylabel: str | None = None,
-    save_path: str | None = None,
-) -> tuple[plt.Figure, plt.Axes, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Plot a simple forecast with normal-based confidence intervals."""
-    x = df[x_col].values.reshape(-1, 1)
-    y = df[y_col].values
-
-    # In-sample fit and residuals
-    y_hat = trend_model.predict(x)
-    residuals = y - y_hat
-    sigma = residuals.std(ddof=1)
-
-    last_x = x.max()
-    future_x = np.arange(last_x + step_size, last_x + step_size * (n_years_ahead + 1), step_size)
-    future_x_2d = future_x.reshape(-1, 1)
-    forecast = trend_model.predict(future_x_2d)
-
-    z = 1.96  # approx 95% CI
-    lower = forecast - z * sigma
-    upper = forecast + z * sigma
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    _apply_minimalist_style(ax)
-
-    ax.plot(df[x_col], df[y_col], label="Observed", color="#1f77b4")
-    ax.plot(future_x, forecast, label="Forecast", color="#ff7f0e")
-    ax.fill_between(future_x, lower, upper, color="#ff7f0e", alpha=0.2, label="95% CI")
-    ax.legend(frameon=False)
-
-    if title:
-        ax.set_title(title)
-    if xlabel:
-        ax.set_xlabel(xlabel)
-    else:
-        ax.set_xlabel(x_col)
-    if ylabel:
-        ax.set_ylabel(ylabel)
-    else:
-        ax.set_ylabel(y_col)
-
-    fig.tight_layout()
-
-    if save_path:
-        logger.info("Saving forecast plot to '%s'", save_path)
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
-
-    return fig, ax, future_x, forecast, lower, upper
+    ps.plot_timeseries(
+        plot_df,
+        title="Time Series with Moving Average",
+        xlabel="Date",
+        ylabel="Value",
+        figsize=(10, 6),
+    )
 
 
-def plot_statistical_decomposition(
-    df: pd.DataFrame,
-    x_col: str,
-    y_col: str,
-    period: int,
-    title: str | None = None,
-    save_path: str | None = None,
-) -> tuple[plt.Figure, np.ndarray, seasonal_decompose]:
-    """Perform and plot a classical seasonal decomposition."""
-    series = df.set_index(x_col)[y_col].asfreq("D")
-    decomposition = seasonal_decompose(series, model="additive", period=period)
+    # --- code cell ---
 
-    fig = decomposition.plot()
-    axes = np.asarray(fig.axes)
-    for ax in axes:
-        _apply_minimalist_style(ax)
+    from statsmodels.tsa.seasonal import seasonal_decompose
 
-    if title:
-        fig.suptitle(title)
-        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    else:
-        fig.tight_layout()
+    decomposed = seasonal_decompose(df["Value"], period=30, model="additive")
 
-    if save_path:
-        logger.info("Saving decomposition plot to '%s'", save_path)
-        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    # Use plotsmith to visualize each component
+    # Ensure the DataFrame has the datetime index preserved
+    decomp_df = pd.DataFrame(
+        {
+            "Trend": decomposed.trend,
+            "Seasonal": decomposed.seasonal,
+            "Residual": decomposed.resid,
+        },
+        index=df.index,
+    )
 
-    return fig, axes, decomposition
+    # Plot each component separately with plotsmith
+    for component in ["Trend", "Seasonal", "Residual"]:
+        ps.plot_timeseries(
+            decomp_df[[component]],
+            title=f"{component} Component",
+            xlabel="Date",
+            ylabel=component,
+            figsize=(10, 3),
+        )
 
 
+    # --- code cell ---
+
+    # Prepare data for heatmap
+    df_reset = df.reset_index()
+    df_reset["Day_of_Week"] = df_reset["Date"].dt.day_name()
+    df_reset["Month"] = df_reset["Date"].dt.month
+    pivot_table = df_reset.pivot_table(
+        values="Value", index="Day_of_Week", columns="Month", aggfunc="mean"
+    )
+
+    # Use plotsmith's plot_heatmap for enhanced visualization
+    ps.plot_heatmap(
+        pivot_table,
+        title="Heatmap of Daily Values",
+        xlabel="Month",
+        ylabel="Day of Week",
+        figsize=(10, 6),
+    )
+
+
+    # --- code cell ---
+
+    # Create a second series
+    df["Value_2"] = df["Value"] + np.random.normal(loc=0, scale=10, size=len(df))
+
+    # Use plotsmith to plot multiple series together
+    # Ensure the DataFrame has the datetime index preserved
+    multi_series_df = pd.DataFrame(
+        {"Series 1": df["Value"], "Series 2": df["Value_2"]}, index=df.index
+    )
+
+    ps.plot_timeseries(
+        multi_series_df,
+        title="Multiple Time Series Comparison",
+        xlabel="Date",
+        ylabel="Value",
+        figsize=(10, 6),
+    )
+
+
+    # --- code cell ---
+
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], mode="lines", name="Value"))
+    fig.add_annotation(
+        x=df.index[50],
+        y=df["Value"].iloc[50],
+        text="Notable Point",
+        showarrow=True,
+        arrowhead=1,
+    )
+    fig.update_layout(
+        title="Interactive Line Plot", xaxis_title="Date", yaxis_title="Value"
+    )
+    fig.show()
+
+
+    # --- code cell ---
+
+    # Dual axis plot with Plotly
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], name="Series 1", yaxis="y1"))
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value_2"], name="Series 2", yaxis="y2"))
+    fig.update_layout(
+        title="Dual Axis Plot",
+        xaxis=dict(title="Date"),
+        yaxis=dict(title="Series 1", side="left"),
+        yaxis2=dict(title="Series 2", overlaying="y", side="right"),
+    )
+    fig.show()
+
+
+    # --- code cell ---
+
+    # Time series with range slider for interactive zooming
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["Value"], mode="lines", name="Value"))
+    fig.update_layout(
+        title="Time Series with Range Slider",
+        xaxis=dict(rangeslider=dict(visible=True), type="date"),
+    )
+    fig.show()
+
+
+if __name__ == "__main__":
+    main()
