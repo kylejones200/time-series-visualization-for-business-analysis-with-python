@@ -5,6 +5,9 @@ Magics and shell lines are commented out. Run with a normal Python interpreter."
 
 # --- code cell ---
 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -69,6 +72,60 @@ import numpy as np
 import pandas as pd
 from matplotlib.animation import FuncAnimation
 
+
+class _LSTMForecaster(nn.Module):
+    """LSTM forecaster (auto-generated PyTorch replacement for Keras Sequential)."""
+    def __init__(self, n_features: int, hidden: int = 50, output_size: int = 1,
+                 n_layers: int = 1, dropout: float = 0.0):
+        super().__init__()
+        self.lstm = nn.LSTM(n_features, hidden, num_layers=n_layers,
+                            batch_first=True, dropout=dropout if n_layers > 1 else 0)
+        self.drop = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden, output_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out, _ = self.lstm(x)
+        return self.fc(self.drop(out[:, -1, :]))
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 32,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 15) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
 
 class CausalInferenceVisualizer:
     def __init__(self):
@@ -289,7 +346,6 @@ plt.close()
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from matplotlib.animation import FuncAnimation
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.arima.model import ARIMA
@@ -343,16 +399,15 @@ class TimeSeriesModelComparison:
         X, y = create_sequences(scaled_data)
         train_size = int(len(X) * 0.85)
 
-        model = tf.keras.Sequential(
+        model = Sequential(
             [
-                tf.keras.layers.LSTM(50, activation="relu", input_shape=(10, 1)),
-                tf.keras.layers.Dense(1),
+                nn.LSTM(50, activation="relu", input_shape=(10, 1)),
+                nn.Dense(1),
             ]
         )
-        model.compile(optimizer="adam", loss="mse")
-        model.fit(X[:train_size], y[:train_size], epochs=50, batch_size=8, verbose=0)
+                _train_torch(model, X[:train_size], y[:train_size])
 
-        self.lstm_pred = model.predict(X[train_size:])
+        self.lstm_pred = _predict_torch(model, X[train_size:])
         self.lstm_pred = scaler.inverse_transform(self.lstm_pred)
 
     def create_animation(self):
@@ -488,19 +543,17 @@ class ExponentialSmoothingVisualizer:
     def fit_models(self):
         # Simple Exponential Smoothing
         ses_model = SimpleExpSmoothing(self.simple_data)
-        self.ses_fit = ses_model.fit(smoothing_level=0.5)
+        self.ses_fit = _train_torch(ses_model, 0.5, y_train)
 
         # Double Exponential Smoothing
         des_model = ExponentialSmoothing(self.trend_data, trend="add")
-        self.des_fit = des_model.fit(smoothing_level=0.5, smoothing_trend=0.5)
+        self.des_fit = _train_torch(des_model, 0.5, 0.5)
 
         # Triple Exponential Smoothing (Holt-Winters)
         hw_model = ExponentialSmoothing(
             self.seasonal_data, trend="add", seasonal="add", seasonal_periods=12
         )
-        self.hw_fit = hw_model.fit(
-            smoothing_level=0.5, smoothing_trend=0.5, smoothing_seasonal=0.5
-        )
+        self.hw_fit = _train_torch(hw_model, 0.5, 0.5)
 
     def create_animation(self):
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12))
@@ -2030,10 +2083,10 @@ model = DLT(
     date_col="date",
     seasonality=52,  # Weekly seasonality
 )
-model.fit(df=data)  # Changed from train_df to df
+_train_torch(model, data, y_train)  # Changed from train_df to df
 
 # Make predictions
-predictions = model.predict(df=data)
+predictions = _predict_torch(model, df=data)
 
 # Plot predictions
 plot_predicted_data(
@@ -2053,7 +2106,7 @@ model_damped = DLT(
     seasonality=52,
     damped=True,  # Damped trend
 )
-model_damped.fit(df=data)  # Changed from train_df to df
+_train_torch(model_damped, data, y_train)  # Changed from train_df to df
 
 # KTR Model with custom priors
 model_ktr = KTR(
@@ -2062,7 +2115,7 @@ model_ktr = KTR(
     seasonality=52,
     level_knot_prior=0.5,
 )
-model_ktr.fit(df=data)  # Changed from train_df to df
+_train_torch(model_ktr, data, y_train)  # Changed from train_df to df
 
 # Multivariate example with regressors
 data["recession"] = [
@@ -2072,7 +2125,7 @@ data["recession"] = [
 model_multivariate = DLT(
     response_col="value", date_col="date", seasonality=52, regressor_col=["recession"]
 )
-model_multivariate.fit(df=data)  # Changed from train_df to df
+_train_torch(model_multivariate, data, y_train)  # Changed from train_df to df
 
 
 # --- code cell ---
@@ -2094,10 +2147,10 @@ model = DLT(
     date_col="date",
     seasonality=52,  # Weekly seasonality
 )
-model.fit(df=data)
+_train_torch(model, data, y_train)
 
 # Make predictions
-predictions = model.predict(df=data)
+predictions = _predict_torch(model, df=data)
 
 # Plot predictions
 plot_predicted_data(
@@ -2116,7 +2169,7 @@ model_advanced = DLT(
     seasonality=52,
     global_trend_option="linear",  # Use linear trend instead of damped
 )
-model_advanced.fit(df=data)
+_train_torch(model_advanced, data, y_train)
 
 # KTR Model with custom priors
 model_ktr = KTR(
@@ -2125,7 +2178,7 @@ model_ktr = KTR(
     seasonality=52,
     level_knot_scale=0.5,  # Changed from level_knot_prior to level_knot_scale
 )
-model_ktr.fit(df=data)
+_train_torch(model_ktr, data, y_train)
 
 # Multivariate example with regressors
 data["recession"] = [
@@ -2135,7 +2188,7 @@ data["recession"] = [
 model_multivariate = DLT(
     response_col="value", date_col="date", seasonality=52, regressor_col=["recession"]
 )
-model_multivariate.fit(df=data)
+_train_torch(model_multivariate, data, y_train)
 
 
 # --- code cell ---
@@ -2156,7 +2209,7 @@ class VolatilityVisualizer:
 
         # Fit GARCH model
         self.model = arch_model(self.returns, vol="GARCH", p=1, q=1)
-        self.result = self.model.fit(disp="off")
+        self.result = self._train_torch(model, "off", y_train)
 
         # Get conditional volatility
         self.conditional_vol = np.sqrt(self.result.conditional_volatility)
