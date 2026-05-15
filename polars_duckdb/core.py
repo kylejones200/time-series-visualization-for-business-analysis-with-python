@@ -4,7 +4,6 @@ import duckdb
 import polars as pl
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import List
 
 
 def plot_time_series(
@@ -25,7 +24,7 @@ def plot_time_series(
 
 
 def plot_multiple_series(
-    df: pl.DataFrame, date_col: str, columns: List[str], title: str, output_path: Path
+    df: pl.DataFrame, date_col: str, columns: list[str], title: str, output_path: Path
 ):
     colors = ["#4A90A4", "#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
     dates = df[date_col].to_list()

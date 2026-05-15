@@ -1,9 +1,7 @@
 """Core functions for time series visualization for business analysis."""
 
-import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import List
 import matplotlib.pyplot as plt
 import logging
 
@@ -28,7 +26,7 @@ def plot_time_series(df: pd.DataFrame, value_col: str, date_col: str, title: str
         plt.savefig(output_path, dpi=100, bbox_inches="tight")
         plt.close()
 
-def plot_multiple_series(df: pd.DataFrame, columns: List[str], title: str, output_path: Path, plot: bool = False):
+def plot_multiple_series(df: pd.DataFrame, columns: list[str], title: str, output_path: Path, plot: bool = False):
     """Plot multiple time series """
     if plot:
         fig, ax = plt.subplots(figsize=(10, 6))

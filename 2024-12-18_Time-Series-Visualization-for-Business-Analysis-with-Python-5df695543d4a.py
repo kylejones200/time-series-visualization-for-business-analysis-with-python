@@ -6,7 +6,6 @@ from data_io import read_csv
 from statsmodels.tsa.seasonal import seasonal_decompose
 import logging
 import matplotlib.pyplot as plt
-import pandas as pd
 import seaborn as sns
 
 logger = logging.getLogger(__name__)
