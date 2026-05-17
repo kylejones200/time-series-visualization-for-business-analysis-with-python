@@ -19,21 +19,23 @@ def plot_time_series(
     plot: bool = False,
 ):
     """Plot time series"""
-    if plot:
-        fig, ax = plt.subplots(figsize=(10, 6))
+    if not plot:
+        return
 
-        if date_col in df.columns:
-            df[date_col] = pd.to_datetime(df[date_col])
-            ax.plot(df[date_col], df[value_col], color="#4A90A4", linewidth=1.2)
-            ax.set_xlabel("Date")
-        else:
-            ax.plot(df[value_col], color="#4A90A4", linewidth=1.2)
-            ax.set_xlabel("Time")
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-        ax.set_ylabel("Value")
+    if date_col in df.columns:
+        df[date_col] = pd.to_datetime(df[date_col])
+        ax.plot(df[date_col], df[value_col], color="#4A90A4", linewidth=1.2)
+        ax.set_xlabel("Date")
+    else:
+        ax.plot(df[value_col], color="#4A90A4", linewidth=1.2)
+        ax.set_xlabel("Time")
 
-        plt.savefig(output_path, dpi=100, bbox_inches="tight")
-        plt.close()
+    ax.set_ylabel("Value")
+
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
 
 
 def plot_multiple_series(
@@ -44,25 +46,27 @@ def plot_multiple_series(
     plot: bool = False,
 ):
     """Plot multiple time series"""
-    if plot:
-        fig, ax = plt.subplots(figsize=(10, 6))
+    if not plot:
+        return
 
-        colors = ["#4A90A4", "#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
-        for i, col in enumerate(columns):
-            ax.plot(
-                df.index if hasattr(df.index, "__len__") else range(len(df)),
-                df[col],
-                label=col,
-                color=colors[i % len(colors)],
-                linewidth=1.2,
-            )
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Value")
-        ax.legend(loc="best")
+    colors = ["#4A90A4", "#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
+    for i, col in enumerate(columns):
+        ax.plot(
+            df.index if hasattr(df.index, "__len__") else range(len(df)),
+            df[col],
+            label=col,
+            color=colors[i % len(colors)],
+            linewidth=1.2,
+        )
 
-        plt.savefig(output_path, dpi=100, bbox_inches="tight")
-        plt.close()
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Value")
+    ax.legend(loc="best")
+
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close()
 
 
 def plot_seasonal_decomposition(
@@ -74,26 +78,28 @@ def plot_seasonal_decomposition(
     plot: bool = False,
 ):
     """Plot seasonal decomposition"""
-    if plot:
-        fig, axes = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
+    if not plot:
+        return
 
-        trend = df[value_col].rolling(window=period, center=True).mean()
-        seasonal = df[value_col] - trend
-        residual = df[value_col] - trend - seasonal
+    fig, axes = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
 
-        axes[0].plot(df[value_col], label="Original", color="#4A90A4", linewidth=1.2)
-        axes[0].set_ylabel("Value")
+    trend = df[value_col].rolling(window=period, center=True).mean()
+    seasonal = df[value_col] - trend
+    residual = df[value_col] - trend - seasonal
 
-        axes[1].plot(trend, label="Trend", color="#D4A574", linewidth=1.2)
-        axes[1].set_ylabel("Trend")
+    axes[0].plot(df[value_col], label="Original", color="#4A90A4", linewidth=1.2)
+    axes[0].set_ylabel("Value")
 
-        axes[2].plot(seasonal, label="Seasonal", color="#8B6F9E", linewidth=1.2)
-        axes[2].set_ylabel("Seasonal")
+    axes[1].plot(trend, label="Trend", color="#D4A574", linewidth=1.2)
+    axes[1].set_ylabel("Trend")
 
-        axes[3].plot(residual, label="Residual", color="#A8C5A0", linewidth=1.2)
-        axes[3].set_xlabel("Time")
-        axes[3].set_ylabel("Residual")
+    axes[2].plot(seasonal, label="Seasonal", color="#8B6F9E", linewidth=1.2)
+    axes[2].set_ylabel("Seasonal")
 
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=100, bbox_inches="tight", facecolor="white")
-        plt.close()
+    axes[3].plot(residual, label="Residual", color="#A8C5A0", linewidth=1.2)
+    axes[3].set_xlabel("Time")
+    axes[3].set_ylabel("Residual")
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=100, bbox_inches="tight", facecolor="white")
+    plt.close()

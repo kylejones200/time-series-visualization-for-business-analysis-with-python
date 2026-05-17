@@ -49,3 +49,11 @@ Edit `config.yaml` to customize:
 - By default, generates synthetic business data.
 - Seasonal period should match data frequency.
 - Visualizations are optimized for business reporting.
+
+## Disclaimer
+
+Educational/demo code only. Not financial, safety, or engineering advice. Use at your own risk. Verify results independently before any production or operational use.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
