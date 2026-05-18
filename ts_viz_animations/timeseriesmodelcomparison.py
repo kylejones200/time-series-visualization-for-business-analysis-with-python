@@ -3,18 +3,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from arch import arch_model
 from matplotlib.animation import FuncAnimation
-from matplotlib.gridspec import GridSpec
-from orbit.diagnostics.metrics import smape
-from orbit.diagnostics.plot import plot_predicted_data
-from orbit.models import DLT, KTR
-from orbit.utils.dataset import load_iclaims
 from pycaret.time_series import *
-from sklearn.decomposition import TruncatedSVD
-from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.holtwinters import ExponentialSmoothing, SimpleExpSmoothing
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
 
 class TimeSeriesModelComparison:
     def __init__(self):
@@ -129,4 +122,3 @@ class TimeSeriesModelComparison:
             fig, animate, frames=(len(self.df) - 50) * 2, interval=500, repeat=True
         )
         return anim
-

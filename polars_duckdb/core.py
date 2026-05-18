@@ -12,7 +12,6 @@ def plot_time_series(
 ):
     dates = df[date_col].to_list()
     values = df[value_col].to_list()
-
     if plot:
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(dates, values, color="#4A90A4", linewidth=1.2)
@@ -29,7 +28,6 @@ def plot_multiple_series(
 ):
     colors = ["#4A90A4", "#D4A574", "#8B6F9E", "#A8C5A0", "#E8A87C"]
     dates = df[date_col].to_list()
-
     if plot:
         fig, ax = plt.subplots(figsize=(10, 6))
         for i, col in enumerate(columns):
@@ -81,26 +79,21 @@ def plot_seasonal_decomposition(
 ):
     decomposed = decompose_trend(df, date_col, value_col, period)
     dates = decomposed[date_col].to_list()
-
     if plot:
         fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
-
         axes[0].plot(
             dates, decomposed[value_col].to_list(), color="#4A90A4", linewidth=1.2
         )
         axes[0].set_ylabel("Original")
-
         axes[1].plot(
             dates, decomposed["trend"].to_list(), color="#D4A574", linewidth=1.2
         )
         axes[1].set_ylabel("Trend")
-
         axes[2].plot(
             dates, decomposed["seasonal"].to_list(), color="#8B6F9E", linewidth=1.2
         )
         axes[2].set_xlabel("Time")
         axes[2].set_ylabel("Detrended")
-
         plt.suptitle(title)
         plt.tight_layout()
         plt.savefig(output_path, dpi=100, bbox_inches="tight", facecolor="white")

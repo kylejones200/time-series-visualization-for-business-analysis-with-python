@@ -1140,44 +1140,27 @@ class VolatilityVisualizer:
 
 def generate_simulated_process_data() -> None:
     np.random.seed(42)
-
     time = pd.date_range(start="2023-01-01", periods=100, freq="D")
-
     values = np.random.normal(50, 2, 100)
-
     values[30:35] += 8
-
     values[70:75] -= 8
-
     df = pd.DataFrame({"Time": time, "Value": values})
-
     mean = df["Value"].mean()
-
     std_dev = df["Value"].std()
-
     ucl = mean + 3 * std_dev
-
     lcl = mean - 3 * std_dev
-
     plt.figure(figsize=(12, 6))
-
     plt.plot(df["Time"], df["Value"], label="Process Data", marker="o", linestyle="-")
-
     plt.axhline(mean, color="blue", linestyle="--", label="Mean")
-
     plt.axhline(ucl, color="red", linestyle="--", label="Upper Control Limit (UCL)")
-
     plt.axhline(lcl, color="red", linestyle="--", label="Lower Control Limit (LCL)")
-
     out_of_control = (df["Value"] > ucl) | (df["Value"] < lcl)
-
     plt.scatter(
         df["Time"][out_of_control],
         df["Value"][out_of_control],
         color="red",
         label="Out of Control",
     )
-
     plt.fill_between(
         df["Time"],
         ucl,
@@ -1186,262 +1169,178 @@ def generate_simulated_process_data() -> None:
         color="red",
         alpha=0.1,
     )
-
     title = "Control Chart with Out-of-Control Areas"
-
     plt.title(title)
-
     plt.xlabel("Time")
-
     plt.ylabel("Value")
-
     plt.legend()
-
     plt.grid()
-
     plt.savefig(f"{title}.png")
-
     plt.show()
 
 
 def generate_two_related_time_series() -> None:
     "\nworks\n"
-
     visualizer = CausalInferenceVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("causal_inference.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_synthetic_multivariate_time_series_data() -> None:
     visualizer = MFLEVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("mfle_visualization.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_simulated_data() -> None:
     visualizer = TimeSeriesModelComparison()
-
     anim = visualizer.create_animation()
-
     anim.save("time_series_models.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_synthetic_data() -> None:
     visualizer = ExponentialSmoothingVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("exponential_smoothing.gif", writer="pillow", fps=5)
-
     plt.close()
 
 
 def generate_simulated_data_2() -> None:
     visualizer = TimeSeriesModelComparison()
-
     anim = visualizer.create_animation()
-
     anim.save("time_series_models.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_simulated_data_3() -> None:
     visualizer = TimeSeriesModelComparison()
-
     anim = visualizer.create_animation()
-
     anim.save("time_series_models.gif", writer="pillow", fps=5)
-
     plt.close()
 
 
 def generate_synthetic_time_series_data() -> None:
     visualizer = FeatureEngineeringVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("feature_engineering.gif", writer="pillow", fps=5)
-
     plt.close()
 
 
 def generate_source_domain_data_e_g_office_energy_co() -> None:
     visualizer = TransferLearningVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("transfer_learning.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_synthetic_time_series_data_for_differen() -> None:
     visualizer = TSClassificationVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("ts_classification.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_synthetic_time_series_data_2() -> None:
     visualizer = TimeSeriesVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("time_series_viz.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def parameters_for_normal_distribution() -> None:
     visualizer = HistogramVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("growing_histogram.gif", writer="pillow", fps=10)
-
     plt.close()
 
 
 def generate_source_domain_data() -> None:
     visualizer = TransferLearningVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("transfer_learning.gif", writer="pillow", fps=20)
-
     plt.close()
 
 
 def create_sample_data() -> None:
     visualizer = PyCaretTimeSeriesVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("pycaret_time_series.gif", writer="pillow", fps=5)
-
     plt.close()
 
 
 def load_and_prepare_data() -> None:
     data = load_iclaims()
-
     data["week"] = pd.to_datetime(data["week"])
-
     data = data.rename(columns={"week": "date", "claims": "value"})
-
     model = DLT(response_col="value", date_col="date", seasonality=52)
-
     model.fit(df=data)
-
     predictions = model.predict(df=data)
-
     plot_predicted_data(
         data, predictions, date_col="date", actual_col="value", pred_col="prediction"
     )
-
     true_values = data["value"]
-
     predicted_values = predictions["prediction"]
-
     print("SMAPE:", smape(true_values, predicted_values))
-
     model_damped = DLT(
         response_col="value", date_col="date", seasonality=52, damped=True
     )
-
     model_damped.fit(df=data)
-
     model_ktr = KTR(
         response_col="value", date_col="date", seasonality=52, level_knot_prior=0.5
     )
-
     model_ktr.fit(df=data)
-
     data["recession"] = [1 if x % 12 < 3 else 0 for x in range(len(data))]
-
     model_multivariate = DLT(
         response_col="value",
         date_col="date",
         seasonality=52,
         regressor_col=["recession"],
     )
-
     model_multivariate.fit(df=data)
 
 
 def load_and_prepare_data_2() -> None:
     data = load_iclaims()
-
     data["week"] = pd.to_datetime(data["week"])
-
     data = data.rename(columns={"week": "date", "claims": "value"})
-
     model = DLT(response_col="value", date_col="date", seasonality=52)
-
     model.fit(df=data)
-
     predictions = model.predict(df=data)
-
     plot_predicted_data(
         data, predictions, date_col="date", actual_col="value", pred_col="prediction"
     )
-
     true_values = data["value"]
-
     predicted_values = predictions["prediction"]
-
     print("SMAPE:", smape(true_values, predicted_values))
-
     model_advanced = DLT(
         response_col="value",
         date_col="date",
         seasonality=52,
         global_trend_option="linear",
     )
-
     model_advanced.fit(df=data)
-
     model_ktr = KTR(
         response_col="value", date_col="date", seasonality=52, level_knot_scale=0.5
     )
-
     model_ktr.fit(df=data)
-
     data["recession"] = [1 if x % 12 < 3 else 0 for x in range(len(data))]
-
     model_multivariate = DLT(
         response_col="value",
         date_col="date",
         seasonality=52,
         regressor_col=["recession"],
     )
-
     model_multivariate.fit(df=data)
 
 
 def generate_sample_data() -> None:
     visualizer = VolatilityVisualizer()
-
     anim = visualizer.create_animation()
-
     anim.save("volatility_analysis.gif", writer="pillow", fps=10, dpi=150)
-
     plt.close()
-
     print("Animation has been saved as 'volatility_analysis.gif'")
 
 
