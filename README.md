@@ -2,6 +2,14 @@
 
 This project demonstrates time series visualization techniques for business analysis.
 
+## Business context
+
+Time series visualization helps us see data patterns, trends, seasonality, and anomalies. By visualizing time series data, we can gain valuable insights that guide modeling choices, such as whether to include seasonal adjustments, trends, or frequency resampling.
+
+<figcaption>Photo by <a class="markup--anchor markup--figure-anchor" rel="photo-creator noopener" target="_blank">Chinh Le Duc</a> on <a class="markup--anchor markup--figure-anchor"
+
+This article explores techniques for visualizing time series using Python libraries like matplotlib, pandas, and seaborn, with a focus on resampling to change observation frequencies.
+
 ## Article
 
 Medium article: [Time Series Visualization for Business Analysis with Python](https://medium.com/@kylejones_47003/time-series-visualization-for-business-analysis-with-python-5df695543d4a)
